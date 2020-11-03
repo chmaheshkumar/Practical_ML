@@ -1,0 +1,66 @@
+---
+title: "Prediction_Assignment"
+author: "Mahesh Ch"
+date: "10/29/2020"
+output: html_document
+---
+### Back Ground
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+### Import the data
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(lattice); 
+library(ggplot2); 
+library(caret); 
+library(randomForest); 
+library(rpart); 
+library(rpart.plot);
+
+training <- read.csv("pml-training.csv", na.strings = c("NA", ""))
+testing <- read.csv("pml-testing.csv", na.strings = c("NA", ""))
+```
+### Data cleaning
+```{r}
+trainingset<-training[,colSums(is.na(training)) == 0]
+testingset <-testing[,colSums(is.na(testing)) == 0]
+#Removing useless data
+trainingset<-trainingset[,-c(1:7)]
+testingset <-testingset[,-c(1:7)]
+
+```
+### Create train/test set
+```{r}
+train_set <- createDataPartition(y=trainingset$classe, p=0.75, list=FALSE)
+train_data<- trainingset[train_set, ] 
+test_data <- trainingset[-train_set, ]
+```
+
+### Build model (Decision Tree)
+```{r}
+fit_model1<- rpart(classe ~ ., data=train_data, method="class")
+rpart.plot(fit_model1, main="Classification Tree", extra=102, under=TRUE, faclen=0)
+```
+
+### Make Prediction
+```{r}
+predict_model1 <- predict(fit_model1,test_data, type = "class")
+
+confusionMatrix(table(predict_model1,test_data$classe))
+```
+
+### Build Model2 and Prediction (Random Forest)
+```{r}
+fit_model2<- randomForest(factor(classe) ~ ., data=train_data, method="class")
+predict_model2 <- predict(fit_model2,test_data, type = "class")
+confusionMatrix(table(predict_model2,test_data$classe))
+```
+### Conclusion
+It is clear from the above classification results, the accuracy value for the second model(Random Forest) is higher than the first model(Decision Tree).So, we consider the second model to build our final model. 
+
+### Final model on Testing data
+```{r}
+Predict_final <- predict(fit_model2, testingset, type="class")
+Predict_final
+```
